@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="user-scalable=no">
+    <script src="/js/jquery.min.js"></script>
+    <!--<script src="/js/jquery.mobile-1.5.0-rc1.min.js"></script>-->
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            background: #000;
+            font-family: helvetica;
+            overflow: hidden;
+        }
+
+        .button {
+            display: inline-block;
+            background: green;
+            padding: 20px;
+            cursor: pointer;
+            color: #fff;
+
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: -moz-none;
+            -o-user-select: none;
+            user-select: none;
+        }
+
+        #status {
+            cursor: inherit;
+            position: absolute;
+            top: 10px;
+            right: 5px;
+        }
+
+        .invisible {
+            opacity: 0;
+        }
+
+
+
+
+        .keys {
+            text-align: center;
+            user-select: none;
+        }
+
+        .arr {
+            cursor: pointer;
+            width: 100px;
+            height: 100px;
+            text-align: center;
+            line-height: 100px;
+            background: #708090;
+            color: white;
+            font-size: 50px;
+            display: inline-block;
+            margin: 5px;
+            transition: all .05s linear;
+            user-select: none;
+            border-radius: 5px;
+        }
+
+
+        .arr {
+            background-position: 18px;
+            background-repeat: no-repeat;
+        }
+
+        .arr-background {
+            background-image: url('arrow.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            height: 100px;
+        }
+
+        .up .arr-background {
+            transform: rotate(180deg);
+        }
+
+        .left .arr-background {
+            transform: rotate(90deg);
+        }
+
+        .right .arr-background {
+            transform: rotate(270deg);
+        }
+
+
+        #keys-container {
+            text-align: left; width: 400px;
+        }
+
+        #indicator {
+            display: none;
+        }
+
+        @media only screen and (max-width: 1024px) {
+
+            #keys-container {
+                margin-top: 450px;
+                text-align: left; width: 100%;
+            }
+
+            #gpio-pinout {
+                display: none;
+            }
+
+            .arr {
+                width: 275px;
+                height: 275px;
+                border-radius: 20px;
+                -webkit-tap-highlight-color: rgba(0,0,0,0);
+
+                box-shadow: -5px -5px 10px rgba(0,0,0,.50) inset, 5px 5px 10px rgba(255,255,255,.50) inset;
+
+            }
+            .arr:focus {
+                outline: none;
+                box-shadow: none;
+            }
+            .arr.pressed {
+                box-shadow: 5px 5px 10px rgba(0,0,0,.50) inset, -5px -5px 10px rgba(255,255,255,.50) inset;
+            }
+
+            .arr-background {
+                height: 260px;
+                background-size: 175px;
+            }
+
+            #indicator {
+                display: block;
+            }
+        }
+
+
+
+    </style>
+</head>
+<body>
+
+    <div id="keys-container">
+        <div class="keys">
+            <div id="forward" class="action up arr">
+                <div class="arr-background"></div>
+            </div>
+            <br />
+            <div id="left" class="action left arr">
+                <div class="arr-background"></div>
+            </div>
+            <div id="reverse" class="action down arr">
+                <div class="arr-background"></div>
+            </div>
+            <div id="right" class="action right arr">
+                <div class="arr-background"></div>
+            </div>
+        </div>
+    </div>
+
+    <div>&nbsp;</div>
+
+    <div id="indicator" style="position: absolute; bottom: 50px; left: calc(50% - 250px); width: 500px; height: 150px; margin: 0 auto; text-align: center; font-size: 75px; text-transform: capitalize; color: #fff;"></div>
+
+
+
+
+    <div id="status" class="button action invisible">&nbsp;</div>
+
+    <div>&nbsp;</div>
+    <div>&nbsp;</div>
+    <div>&nbsp;</div>
+
+    <div id="pwm-container">
+        <input type="text" id="pin" placeholder="pin (default 24)">
+        <input type="range" id="pwm" min="1" max="100" value="0">
+    </div>
+
+    <div>&nbsp;</div>
+
+    <img src="/gpio-pinout.png" id="gpio-pinout" style="max-width: 1000px;" />
+
+
+    <script>
+
+        var socket = io({
+            path: '/ws',
+            //these two values help with prolonged periods of no activity but remaining connected
+            transports: ['websocket'],
+            upgrade: false
+        });
+
+        $(document).ready(function() {
+
+            mouseActions();
+            keyboardActions();
+            touchActions();
+            PWM();
+
+            // STATUS
+            socket.on('connect', function() {
+                status('connected');
+            });
+            socket.on('disconnect', function() {
+                status('disconnected');
+            });
+
+            //timeout is to avoid jitters on page load - derpy but it works
+            setTimeout(function() {
+                if (socket.connected === false) {
+                    status('disconnected');
+                }
+            }, 200);
+
+        });
+
+        /**
+         * MOUSE EVENTS
+         */
+        function mouseActions() {
+            $('.action').on('mousedown', function() {
+                var action = $(this).attr('id');
+
+                socket.emit('CMD', {
+                    action: action
+                });
+
+            });
+            $('body').on('mouseup', function() {
+                socket.emit('CMD', {
+                    action: 'shut all off - mouse'
+                });
+            });
+
+
+        }
+
+        /**
+         * KEYBOARD EVENTS
+         */
+        function keyboardActions() {
+            var keyPressed = 0;
+            $(window).on('keydown', function(e) {
+
+                console.log(e.key);
+
+                if (e.key == 'ArrowUp' && keyPressed == 0) {
+                    socket.emit('CMD', {
+                        action: 'forward'
+                    });
+                    keyPressed = 1;
+                }
+
+                if (e.key == 'ArrowDown' && keyPressed == 0) {
+                    socket.emit('CMD', {
+                        action: 'reverse'
+                    });
+                    keyPressed = 1;
+                }
+
+                if (e.key == 'ArrowLeft' && keyPressed == 0) {
+                    console.log('left');
+                    socket.emit('CMD', {
+                        action: 'left'
+                    });
+                    keyPressed = 1;
+                }
+
+                if (e.key == 'ArrowRight' && keyPressed == 0) {
+                    console.log('right');
+                    socket.emit('CMD', {
+                        action: 'right'
+                    });
+                    keyPressed = 1;
+                }
+
+            });
+
+            //derpy needs to be put within keyup of the specific function
+            $(window).on('keyup', function(e) {
+                socket.emit('CMD', {
+                    action: 'shut all off'
+                });
+                keyPressed = 0;
+            });
+        }
+
+        /**
+         * TOUCH EVENTS
+         */
+        function touchActions() {
+            $('.action').on('touchstart', function() {
+                $('#' + $(this).attr('id')).addClass('pressed');
+                $('#indicator')
+                    .css({})
+                    .html($(this).attr('id'));
+
+                var action = $(this).attr('id');
+
+                socket.emit('CMD', {
+                    action: action
+                });
+
+            });
+            $('.action').on('touchend', function() {
+                $('#' + $(this).attr('id')).removeClass('pressed');
+                $('#indicator')
+                    .css({})
+                    .html('');
+
+                socket.emit('CMD', {
+                    action: 'stop all'
+                });
+
+            });
+        }
+
+        /**
+         * PWM
+         */
+        function PWM() {
+            $('#pwm').on('input change', function() {
+                var percent = $(this).val();
+                var pin = parseInt($('#pin').val()) || 24;
+                if (percent % 2 == 0) {
+                    console.log('pin ' + pin, percent + '%');
+                    socket.emit('pwm', {
+                        pwm: percent,
+                        pin: pin
+                    });
+                }
+            });
+        }
+
+
+
+
+        //UTILITLY functions
+        function status(status) {
+            if (status == 'connected') {
+                $('#status').css({
+                    opacity: 1,
+                    background: 'green'
+                }).html('NODE CONNECTED');
+            }
+            else {
+                $('#status').css({
+                    opacity: 1,
+                    background: 'red'
+                }).html('NODE DISCONNECTED');
+            }
+        }
+
+    </script>
+</body>
+</html>

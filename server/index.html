@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body style="background: #000;">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs=" crossorigin="anonymous"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io({
+        path: '/ws'
+    });
+
+    $(document).ready(function() {
+        $('body').on('click', function() {
+            console.log('SEND');
+            socket.emit('SEND', 'derp');
+        });
+    });
+
+
+</script>
+</body>
+</html>

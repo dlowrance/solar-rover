@@ -1,0 +1,213 @@
+const express = require('express');
+const app = express();
+const http = require('http').Server(app);
+const rpio = require('rpio'); //https://www.npmjs.com/package/rpio
+const io = require('socket.io')(http, {
+    //origins:['solar.dlowrance.com'], //not needed? idk why :'(
+    path:'/ws'
+});
+
+// GPIO PINOUT:
+// https://www.raspberrypi.org/documentation/usage/gpio/
+
+/* rpio init stuff? */
+rpio.init({
+    gpiomem: false, /* Use /dev/mem for i²c/PWM/SPI */
+    mapping: 'gpio' /* Use the GPIOxx numbering */
+});
+
+
+
+// Must init pins - this remains until reboot or redefinition
+// rpio.open(led, rpio.OUTPUT, rpio.LOW);
+rpio.open(24, rpio.OUTPUT, rpio.LOW);
+rpio.open(23, rpio.OUTPUT, rpio.LOW);
+//test pin
+rpio.open(17, rpio.OUTPUT, rpio.LOW);
+
+
+
+
+// https://github.com/jperkin/node-rpio#pwm
+// 40-pin models: pins 12, 32, 33, 35 - gave me 1 PWM result (lol)
+
+
+
+//temp
+//rpio.open(2, rpio.OUTPUT, rpio.LOW); //why is rpio.LOW turning gpio 2 and ground on?
+//console.log('rpio.LOW:', rpio.LOW);
+
+
+
+// init base pin 25 as 1 to make pins 23 and 24 work
+// this was the main problem, pin needed to be set to high
+rpio.open(25, rpio.OUTPUT, rpio.HIGH);
+
+//send data from socket
+io.on('connection', (socket) => {
+    console.log('connection');
+
+    //turn on when connection
+    var status = connection();
+    console.log(status);
+
+    var toggle = {
+        forward: 0,
+        reverse: 0,
+        left: 0,
+        right: 0
+    };
+
+    socket.on('CMD', (data) => {
+
+        //console.log(data.action);
+
+        switch(data.action) {
+            // Drive commands
+            case 'forward':
+
+                console.log('go forward');
+                if (toggle.forward == 1) {
+
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.LOW);
+
+                    toggle.forward = 0;
+                }
+                else {
+                    // forward
+                    rpio.write(24, rpio.HIGH);
+                    rpio.write(23, rpio.LOW);
+
+                    //derp - testing
+
+
+                    toggle.forward = 1;
+                }
+            break;
+
+            case 'reverse':
+                console.log('go reverse');
+                if (toggle.reverse == 1) {
+
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.LOW);
+
+                    toggle.reverse = 0;
+                }
+                else {
+                    // reverse
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.HIGH);
+
+                    toggle.reverse = 1;
+                }
+            break;
+
+
+            // Directional commands
+            case 'left':
+                console.log('go left');
+                /*
+                if (toggle.reverse == 1) {
+
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.LOW);
+
+                    toggle.reverse = 0;
+                }
+                else {
+                    // reverse
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.HIGH);
+
+                    toggle.reverse = 1;
+                }
+                */
+            break;
+
+            case 'right':
+                console.log('go right');
+                /*
+                if (toggle.reverse == 1) {
+
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.LOW);
+
+                    toggle.reverse = 0;
+                }
+                else {
+                    // reverse
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.HIGH);
+
+                    toggle.reverse = 1;
+                }
+                */
+            break;
+
+
+            case 'test':
+                if (!isNaN(data.pin)) {
+
+                    // This is tighly coupled with rpio. The input value must be <= 26 or rpio lib will throw an error
+                    if (data.pin <= 26) {
+
+                        // Turn test pin #:ON
+                        if (data.state == 'mousedown') {
+                            // dunno what this is but keeping it here
+                            //rpio.open(data.pin, rpio.OUTPUT, rpio.LOW);
+                            rpio.write(data.pin, rpio.HIGH);
+                        }
+                        // Turn test pin #:OFF
+                        else {
+                            rpio.write(data.pin, rpio.LOW);
+                        }
+
+                        //console.log('pin:', data.pin, 'high');
+                        //socket.emit('response', 'wooop woop');
+                        //console.log(data);
+
+                    }
+
+                }
+                /*
+                else {
+                    console.log('bad pin number:', data.pin);
+                }
+                */
+
+            break;
+
+            default:
+                console.log('Shut all off');
+                // forward
+                rpio.write(24, rpio.LOW);
+                rpio.write(23, rpio.LOW);
+
+                toggle.forward = 0;
+                toggle.reverse = 0;
+
+        }
+
+
+
+        //console.log('pin ' + led + ':', rpio.read(led));
+
+    });
+});
+
+
+//init server
+http.listen(3000, () => {
+    console.log('listening on *:3000');
+});
+
+//Utility
+function connection() {
+    if (true) {
+
+    }
+    return false;
+    return rpio.write(pin, rpio.HIGH);
+}

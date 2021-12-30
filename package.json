@@ -1,0 +1,25 @@
+{
+  "name": "solar-rover",
+  "version": "0.1.0",
+  "description": "Solar powered robot",
+  "main": "client/index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dlowrance/solar-rover.git"
+  },
+  "author": "Daniel Lowrance",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dlowrance/solar-rover/issues"
+  },
+  "homepage": "https://github.com/dlowrance/solar-rover#readme",
+  "dependencies": {
+    "express": "^4.17.2",
+    "rpio": "^2.4.2",
+    "rpio-pwm": "^1.0.3",
+    "socket.io": "^4.4.0"
+  }
+}
