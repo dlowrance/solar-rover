@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="user-scalable=no">
+    <title id="title" data-title="Solar Rover">Solar Rover</title>
     <script src="/js/jquery.min.js"></script>
     <!--<script src="/js/jquery.mobile-1.5.0-rc1.min.js"></script>-->
     <script src="/socket.io/socket.io.js"></script>
@@ -336,17 +337,21 @@
 
         //UTILITLY functions
         function status(status) {
+            var currentTitle = $('#title').data('title');
+
             if (status == 'connected') {
                 $('#status').css({
                     opacity: 1,
                     background: 'green'
                 }).html('NODE CONNECTED');
+                $('#title').html(currentTitle + ' - Connected')
             }
             else {
                 $('#status').css({
                     opacity: 1,
                     background: 'red'
                 }).html('NODE DISCONNECTED');
+                $('#title').html(currentTitle + ' - Disconnected')
             }
         }
 
