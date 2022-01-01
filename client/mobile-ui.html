@@ -6,6 +6,7 @@ html, body{
     background: #000;
 }
  body{
+    overflow: hidden;
     margin:0;
     padding:0;
     width:100%;
@@ -17,6 +18,7 @@ html, body{
      cursor: pointer;
      display: inline-block;
      background: rgba(112, 128, 144, 0.5);
+     box-sizing: border-box;
      border: 1px solid rgba(112, 128, 144, 1);
      border-radius: 50%;
      z-index: 100;
@@ -25,10 +27,16 @@ html, body{
      display: none;
 }
  #canvas {
-     border: 2px #fff solid;
      margin: 0 auto;
      border-radius: 50%;
      z-index: 100;
+}
+#canvas_container {
+    box-sizing: border-box;
+    border: 2px #fff solid;
+    border-radius: 50%;
+    display: inherit;
+    margin: 0 auto;
 }
  #canvas_bottom {
      height: 100%;
@@ -39,6 +47,7 @@ html, body{
      background: #fff;
      border: 1px dashed #444;
      border-radius: 50%;
+     box-sizing: border-box;
      z-index: 10;
 }
 .coords {
@@ -46,19 +55,22 @@ html, body{
 }
 
 </style>
-<title>robot-ui</title>
+<title>mobile-ui</title>
 </head>
 <body>
 <div style="position: absolute; top: 0; left: 0;" class="hidden coords">
 	<span id="posX"></span>, <span id="posY"></span>
+    <div>diameter: <span id="diameter"></span></div>
 </div>
-<div id="canvas">
-	<div id="canvas_bottom">
-		<div id="cursor">
-		</div>
-	</div>
-	<div id="origin">
-	</div>
+<div id="canvas_container">
+    <div id="canvas">
+    	<div id="canvas_bottom">
+    		<div id="cursor">
+    		</div>
+    	</div>
+    	<div id="origin">
+    	</div>
+    </div>
 </div>
 <div id="r-app">
 </div>
@@ -94,6 +106,12 @@ function draw() {
 	var origin = $('#'+cfg.origin_id);
 	var window_height = $(window).height();
 	var window_width = $(window).width();
+    if (window_width > window_height) {
+        cfg.canvas_diameter = window_height * 0.8;
+    }
+    $('#diameter').html(parseInt(cfg.canvas_diameter));
+
+
 	canvas.css({width: cfg.canvas_diameter, height: cfg.canvas_diameter});
 	cursor
 		.css({width: cfg.cursor_diameter, height: cfg.cursor_diameter})
@@ -119,7 +137,7 @@ $(document).ready(function() {
 	draw();
 
     var window_height = $(window).height();
-    $('#canvas').css({
+    $('#canvas_container').css({
         'margin-top': parseInt(window_height / 2 - cfg.canvas_diameter / 2) + 'px'
     })
 });
@@ -146,8 +164,10 @@ $(function() {
                 */
 				ui.position = {left: left, top: top};
 				//coords upper left
-				$('#posX').text(left);
-				$('#posY').text(top);
+                var x_coord = parseInt(left - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
+                var y_coord = -parseInt(top - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
+				$('#posX').text(x_coord);
+				$('#posY').text(y_coord);
 			},
       stop: function() {
           //$('.show').addClass('hidden').removeClass('show');
