@@ -36,12 +36,11 @@ html, body{
     border: 2px #fff solid;
     border-radius: 50%;
     display: inherit;
-    margin: 0 auto;
+    position: absolute;
+    z-index: 10;
+    background: #000;
 }
- #canvas_bottom {
-     height: 100%;
-     /*border-bottom: 1px #444 dashed;*/
-}
+
  #origin {
      display: inline-block;
      background: #fff;
@@ -54,6 +53,21 @@ html, body{
     color: #fff;
 }
 
+.dial {
+    width: 600px;
+    height: 5px;
+    position: absolute;
+    transform-origin: left;
+    background: rgba(112, 128, 144, 1);
+    opacity: 0;
+    transition: opacity 0.23s;
+}
+
+.dial.abs {
+    left: 50%;
+    top: 50%;
+}
+
 </style>
 <title>mobile-ui</title>
 </head>
@@ -64,15 +78,12 @@ html, body{
 </div>
 <div id="canvas_container">
     <div id="canvas">
-    	<div id="canvas_bottom">
-    		<div id="cursor">
-    		</div>
-    	</div>
-    	<div id="origin">
-    	</div>
+        <div id="cursor"></div>
+    	<div id="origin"></div>
     </div>
 </div>
-<div id="r-app">
+<div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden;">
+    <div class="dial abs"></div>
 </div>
 </body>
 </html>
@@ -138,13 +149,20 @@ $(document).ready(function() {
 
     var window_height = $(window).height();
     $('#canvas_container').css({
-        'margin-top': parseInt(window_height / 2 - cfg.canvas_diameter / 2) + 'px'
-    })
+        top : parseInt(window_height / 2 - cfg.canvas_diameter / 2) + 'px',
+        left: 'calc(' + 50 + '% - ' + cfg.canvas_diameter/2 + 'px)'
+    });
+    $('.dial').css({
+        width: cfg.canvas_diameter
+    });
 });
 $(function() {
 	$('#'+cfg.cursor_id).draggable({
       start: function() {
-          $('.hidden').addClass('show').removeClass('hidden');
+          //$('.hidden').addClass('show').removeClass('hidden');
+          $('.dial').css({
+              opacity: 1
+          });
       },
       drag:	function (e, ui) {
 				var r = cfg.canvas_diameter*0.5;
@@ -168,9 +186,34 @@ $(function() {
                 var y_coord = -parseInt(top - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
 				$('#posX').text(x_coord);
 				$('#posY').text(y_coord);
+
+                var theta = Math.atan(y_coord/x_coord) * 180 / Math.PI;
+                if (x_coord >= 0 && y_coord >= 0) {
+                    theta = theta
+                }
+                else if (x_coord < 0 && y_coord) {
+                    theta = 180 - Math.atan(y_coord/-x_coord) * 180/ Math.PI;
+                    if (theta == 270) theta = 90;
+                }
+                else if (y_coord <= 0 && x_coord < 0) {
+                    if (theta == 0) theta = 180;
+                }
+                else if (y_coord < 0 && x_coord >= 0) {
+                    theta = 360 + theta;
+                }
+                else {
+
+                }
+
+                $('.dial').css({
+                    transform: 'rotate(-' + theta + 'deg)'
+                });
 			},
       stop: function() {
           //$('.show').addClass('hidden').removeClass('show');
+          $('.dial').css({
+              opacity: 0
+          });
       },
             revert: true
     });
