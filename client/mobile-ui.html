@@ -54,7 +54,7 @@ html, body{
 }
 
 .dial {
-    width: 600px;
+    /*width: 600px;*/
     height: 5px;
     position: absolute;
     transform-origin: left;
@@ -186,6 +186,11 @@ $(function() {
                 var y_coord = -parseInt(top - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
 				$('#posX').text(x_coord);
 				$('#posY').text(y_coord);
+
+                // adjust length of dial to reflect 0-100% speed
+                $('.dial').css({
+                    width: (cfg.canvas_diameter / 2) * 1.1 + Math.sqrt((Math.pow(x_coord, 2) + Math.pow(y_coord, 2)))
+                });
 
                 var theta = Math.atan(y_coord/x_coord) * 180 / Math.PI;
                 if (x_coord >= 0 && y_coord >= 0) {
