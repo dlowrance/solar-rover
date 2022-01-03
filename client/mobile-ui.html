@@ -1,75 +1,94 @@
 <html>
 <head>
-<style>
-html, body{
-    height:100%;
-    background: #000;
-}
- body{
-    overflow: hidden;
-    margin:0;
-    padding:0;
-    width:100%;
-    display:table;
-    font-weight:100;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
- #cursor {
-     cursor: pointer;
-     display: inline-block;
-     background: rgba(112, 128, 144, 0.5);
-     box-sizing: border-box;
-     border: 1px solid rgba(112, 128, 144, 1);
-     border-radius: 50%;
-     z-index: 100;
-}
- .hidden {
-     display: none;
-}
- #canvas {
-     margin: 0 auto;
-     border-radius: 50%;
-     z-index: 100;
-}
-#canvas_container {
-    box-sizing: border-box;
-    border: 2px #fff solid;
-    border-radius: 50%;
-    display: inherit;
-    position: absolute;
-    z-index: 10;
-    background: #000;
-}
+    <link rel="icon" type="image/png" href="favicon.png" />
 
- #origin {
-     display: inline-block;
-     background: #fff;
-     border: 1px dashed #444;
-     border-radius: 50%;
-     box-sizing: border-box;
-     z-index: 10;
-}
-.coords {
-    color: #fff;
-}
+    <style>
+    html, body{
+        height:100%;
+        background: #000;
+    }
+     body{
+        overflow: hidden;
+        margin:0;
+        padding:0;
+        width:100%;
+        display:table;
+        font-weight:100;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+     #cursor {
+         cursor: pointer;
+         display: inline-block;
+         background: rgba(112, 128, 144, 0.5);
+         box-sizing: border-box;
+         border: 1px solid rgba(112, 128, 144, 1);
+         border-radius: 50%;
+         z-index: 100;
+    }
+     .hidden {
+         display: none;
+    }
+     #canvas {
+         margin: 0 auto;
+         border-radius: 50%;
+         z-index: 100;
+    }
+    #canvas_container {
+        box-sizing: border-box;
+        border: 2px #fff solid;
+        border-radius: 50%;
+        display: inherit;
+        position: absolute;
+        z-index: 10;
+        background: #000;
+    }
 
-.dial {
-    /*width: 600px;*/
-    height: 5px;
-    position: absolute;
-    transform-origin: left;
-    background: rgba(112, 128, 144, 1);
-    opacity: 0;
-    transition: opacity 0.23s;
-}
+     #origin {
+         display: inline-block;
+         background: #fff;
+         border: 1px dashed #444;
+         border-radius: 50%;
+         box-sizing: border-box;
+         z-index: 10;
+    }
+    .coords {
+        color: #fff;
+    }
 
-.dial.abs {
-    left: 50%;
-    top: 50%;
-}
+    .dial {
+        /*width: 600px;*/
+        height: 5px;
+        position: absolute;
+        transform-origin: left;
+        background: rgba(112, 128, 144, 1);
+        opacity: 0;
+        transition: opacity 0.5s;
+    }
 
-</style>
-<title>mobile-ui</title>
+    .dial.abs {
+        z-index: 1;
+    }
+
+    .dial.abs, .dial.max {
+        left: 50%;
+        top: 50%;
+    }
+
+    .dial.max {
+        background: rgba(112, 128, 144, 0.5);
+    }
+
+    .dial-container {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        overflow: hidden;
+    }
+
+    </style>
+    <title>mobile-ui</title>
 </head>
 <body>
 <div style="position: absolute; top: 0; left: 0;" class="hidden coords">
@@ -78,12 +97,13 @@ html, body{
 </div>
 <div id="canvas_container">
     <div id="canvas">
-        <div id="cursor"></div>
+        <div id="cursor" data-coords="{x:0, y:0}"></div>
     	<div id="origin"></div>
     </div>
 </div>
-<div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden;">
+<div class="dial-container">
     <div class="dial abs"></div>
+    <div class="dial max"></div>
 </div>
 </body>
 </html>
@@ -107,7 +127,7 @@ var cfg = {
 	canvas_id: 'canvas',
 	cursor_id: 'cursor',
 	origin_id: 'origin',
-	canvas_diameter: $(window).width() * .8,
+	canvas_diameter: $(window).width() * 0.8,
 	cursor_diameter: 120,
 	cursor_origin: null
 }
@@ -152,76 +172,87 @@ $(document).ready(function() {
         top : parseInt(window_height / 2 - cfg.canvas_diameter / 2) + 'px',
         left: 'calc(' + 50 + '% - ' + cfg.canvas_diameter/2 + 'px)'
     });
-    $('.dial').css({
-        width: cfg.canvas_diameter
+
+    var currentMousePos = {x:0, y:0};
+    $('#canvas').on('click', function(event) {
+        currentMousePos.x = event.pageX;
+        currentMousePos.y = event.pageY;
+        console.log(currentMousePos)
     });
 });
+
 $(function() {
-	$('#'+cfg.cursor_id).draggable({
-      start: function() {
-          //$('.hidden').addClass('show').removeClass('hidden');
-          $('.dial').css({
-              opacity: 1
-          });
-      },
-      drag:	function (e, ui) {
-				var r = cfg.canvas_diameter*0.5;
-				var small_r = cfg.cursor_diameter*0.5;
-				var origin_x = r - small_r;
-				var origin_y = r - small_r;
-				var x = ui.position.left - origin_x, y = ui.position.top - origin_y;
-				var l = Math.sqrt(x*x + y*y);
-				var l_in = Math.min(r - small_r, l);
-				var left = parseInt(x/l*l_in + origin_x);
-				var top = parseInt(y/l*l_in + origin_y);
-                /* this will not allow the cursor to go below the x-axis at the center
-                if (y > 0) {
-					top = (cfg.cursor_origin.y);
-					ui.position = {left: left, top: top};
-				}
-                */
-				ui.position = {left: left, top: top};
-				//coords upper left
-                var x_coord = parseInt(left - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
-                var y_coord = -parseInt(top - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
-				$('#posX').text(x_coord);
-				$('#posY').text(y_coord);
+    var x_coord = 0;
+    var y_coord = 0;
+    $('#' + cfg.cursor_id).draggable({
+        start: function() {
+            //$('.hidden').addClass('show').removeClass('hidden');
+            $('.dial').css({
+                opacity: 1
+            });
+        },
+        drag: function(e, ui) {
+            var r = cfg.canvas_diameter * 0.5,
+                small_r = cfg.cursor_diameter * 0.5,
+                origin_x = r - small_r,
+                origin_y = r - small_r,
+                x = ui.position.left - origin_x,
+                y = ui.position.top - origin_y,
+                l = Math.sqrt(x * x + y * y),
+                l_in = Math.min(r - small_r, l),
+                left = parseInt(x / l * l_in + origin_x),
+                top = parseInt(y / l * l_in + origin_y);
 
-                // adjust length of dial to reflect 0-100% speed
-                $('.dial').css({
-                    width: (cfg.canvas_diameter / 2) * 1.1 + Math.sqrt((Math.pow(x_coord, 2) + Math.pow(y_coord, 2)))
-                });
+            ui.position = {
+                left: left,
+                top: top
+            };
+            //coords upper left
+            x_coord = parseInt(left - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
+            y_coord = -parseInt(top - (parseInt(cfg.canvas_diameter) / 2 - cfg.cursor_diameter / 2));
 
-                var theta = Math.atan(y_coord/x_coord) * 180 / Math.PI;
-                if (x_coord >= 0 && y_coord >= 0) {
-                    theta = theta
-                }
-                else if (x_coord < 0 && y_coord) {
-                    theta = 180 - Math.atan(y_coord/-x_coord) * 180/ Math.PI;
-                    if (theta == 270) theta = 90;
-                }
-                else if (y_coord <= 0 && x_coord < 0) {
-                    if (theta == 0) theta = 180;
-                }
-                else if (y_coord < 0 && x_coord >= 0) {
-                    theta = 360 + theta;
-                }
-                else {
+            $('#posX').text(x_coord);
+            $('#posY').text(y_coord);
 
-                }
+            var theta = Math.atan(y_coord / x_coord) * 180 / Math.PI;
+            if (x_coord >= 0 && y_coord >= 0) {
+                theta = theta
+            } else if (x_coord < 0 && y_coord) {
+                theta = 180 - Math.atan(y_coord / -x_coord) * 180 / Math.PI;
+                if (theta == 270) theta = 90;
+            } else if (y_coord <= 0 && x_coord < 0) {
+                if (theta == 0) theta = 180;
+            } else if (y_coord < 0 && x_coord >= 0) {
+                theta = 360 + theta;
+            } else {
+                //nothing
+            }
 
-                $('.dial').css({
-                    transform: 'rotate(-' + theta + 'deg)'
-                });
-			},
-      stop: function() {
-          //$('.show').addClass('hidden').removeClass('show');
-          $('.dial').css({
-              opacity: 0
-          });
-      },
-            revert: true
+            $('.dial').css({
+                transform: 'rotate(-' + theta + 'deg)'
+            });
+        },
+        stop: function() {
+            //$('.show').addClass('hidden').removeClass('show');
+            $('.dial').css({
+                opacity: 0
+            });
+        },
+        revert: true
     });
+
+    var dial = $('.dial');
+    var dialMax = $('.dial.max');
+    setInterval(function() {
+        dial.css({
+            width: (cfg.canvas_diameter / 2) + Math.sqrt((Math.pow(x_coord, 2) + Math.pow(y_coord, 2)))
+        });
+        dialMax.css({
+            width: cfg.canvas_diameter - cfg.cursor_diameter * 0.5
+        });
+    }, 100);
+
+
 });
 $(window).resize(function() {
 	draw();
