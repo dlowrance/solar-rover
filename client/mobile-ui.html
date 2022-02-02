@@ -170,14 +170,14 @@ $(document).ready(function() {
     var window_height = $(window).height();
     $('#canvas_container').css({
         top : parseInt(window_height / 2 - cfg.canvas_diameter / 2) + 'px',
-        left: 'calc(' + 50 + '% - ' + cfg.canvas_diameter/2 + 'px)'
+        left: 'calc(' + 50 + '% - ' + cfg.canvas_diameter / 2 + 'px)'
     });
 
     var currentMousePos = {x:0, y:0};
     $('#canvas').on('click', function(event) {
         currentMousePos.x = event.pageX;
         currentMousePos.y = event.pageY;
-        console.log(currentMousePos)
+        console.log(currentMousePos);
     });
 });
 
