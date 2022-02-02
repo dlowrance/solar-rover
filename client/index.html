@@ -2,9 +2,9 @@
 <html>
 <head>
     <meta name="viewport" content="user-scalable=no">
+    <link rel="icon" type="image/png" href="/favicon.png">
     <title id="title" data-title="Solar Rover">Solar Rover</title>
     <script src="/js/jquery.min.js"></script>
-    <!--<script src="/js/jquery.mobile-1.5.0-rc1.min.js"></script>-->
     <script src="/socket.io/socket.io.js"></script>
     <style>
         body {
@@ -66,7 +66,7 @@
         }
 
         .arr-background {
-            background-image: url('arrow.png');
+            background-image: url('img/arrow.png');
             background-repeat: no-repeat;
             background-position: center;
             height: 100px;
@@ -86,6 +86,7 @@
 
 
         #keys-container {
+            float: left;
             text-align: left; width: 400px;
         }
 
@@ -93,11 +94,21 @@
             display: none;
         }
 
+        .camera.desktop {
+            float: left;
+            width: 400px;
+        }
+
+        .camera img {
+            max-width: 100%;
+            width: 100%;
+        }
+
         @media only screen and (max-width: 1024px) {
 
             #keys-container {
-                margin-top: 450px;
-                text-align: left; width: 100%;
+                text-align: left;
+                width: 100%;
             }
 
             #gpio-pinout {
@@ -129,10 +140,28 @@
             #indicator {
                 display: block;
             }
+
+            .camera.desktop {
+                display: none;
+            }
+
+            .camera.mobile {
+                display: block!important;
+                height: 700px;
+                margin-bottom: 20px;
+            }
+        }
+
+        .camera.mobile {
+            display: none;
         }
 
         .btn {
             cursor: pointer;
+        }
+
+        .clearfix {
+            overflow: auto;
         }
 
 
@@ -140,21 +169,31 @@
 </head>
 <body>
 
-    <div id="keys-container">
-        <div class="keys">
-            <div id="forward" class="action up arr">
-                <div class="arr-background"></div>
+    <div class="clearfix">
+        <div class="camera mobile">
+            <img src="/stream" alt="Front Camera" onerror="this.onerror=null; this.src='img/onerror.png'" />
+        </div>
+
+        <div id="keys-container">
+            <div class="keys">
+                <div id="forward" class="action up arr">
+                    <div class="arr-background"></div>
+                </div>
+                <br />
+                <div id="left" class="action left arr">
+                    <div class="arr-background"></div>
+                </div>
+                <div id="reverse" class="action down arr">
+                    <div class="arr-background"></div>
+                </div>
+                <div id="right" class="action right arr">
+                    <div class="arr-background"></div>
+                </div>
             </div>
-            <br />
-            <div id="left" class="action left arr">
-                <div class="arr-background"></div>
-            </div>
-            <div id="reverse" class="action down arr">
-                <div class="arr-background"></div>
-            </div>
-            <div id="right" class="action right arr">
-                <div class="arr-background"></div>
-            </div>
+        </div>
+
+        <div class="camera desktop">
+            <img src="/stream" alt="Front Camera" onerror="this.onerror=null; this.src='img/onerror.png'" />
         </div>
     </div>
 
@@ -191,7 +230,7 @@
 
     <div>&nbsp;</div>
 
-    <img src="/gpio-pinout.png" id="gpio-pinout" style="max-width: 1000px;" />
+    <img src="/img/gpio-pinout.png" id="gpio-pinout" style="max-width: 1000px;" />
 
 
     <script>
