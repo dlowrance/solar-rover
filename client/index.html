@@ -10,7 +10,6 @@
         body {
             background: #000;
             font-family: helvetica;
-            overflow: hidden;
         }
 
         .button {
@@ -105,6 +104,10 @@
         }
 
         @media only screen and (max-width: 1024px) {
+
+            body {
+                overflow: hidden;
+            }
 
             #keys-container {
                 text-align: left;
@@ -263,6 +266,13 @@
                     status('disconnected');
                 }
             }, 200);
+
+            //disable arrow keys ability to scroll
+            window.addEventListener('keydown', function(e) {
+                if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) > -1) {
+                    e.preventDefault();
+                }
+            }, false);
 
         });
 
