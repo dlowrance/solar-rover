@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo openvpn --config /home/pi/solar-rover/solar.ovpn --daemon
+sudo openvpn --config /home/pi/solar-rover/solr.ovpn --daemon

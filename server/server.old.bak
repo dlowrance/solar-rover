@@ -1,0 +1,364 @@
+const express = require('express');
+const app = express();
+const http = require('http').Server(app);
+const rpio = require('rpio'); // https://www.npmjs.com/package/rpio
+const pwm = require('rpio-pwm'); // https://www.npmjs.com/package/rpio-pwm
+const io = require('socket.io')(http, {
+    //origins:['solar.dlowrance.com'], //not needed? idk why :'(
+    path:'/ws'
+});
+
+// GPIO PINOUT:
+// https://www.raspberrypi.org/documentation/usage/gpio/
+
+/* rpio init stuff? */
+rpio.init({
+    gpiomem: false, /* Use /dev/mem for i²c/PWM/SPI */
+    mapping: 'gpio' /* Use the GPIOxx numbering */
+});
+
+
+
+// Must init pins - this remains until reboot or redefinition
+// rpio.open(led, rpio.OUTPUT, rpio.LOW);
+rpio.open(24, rpio.OUTPUT, rpio.LOW);
+rpio.open(23, rpio.OUTPUT, rpio.LOW);
+
+rpio.open(14, rpio.OUTPUT, rpio.LOW);
+rpio.open(15, rpio.OUTPUT, rpio.LOW);
+
+//test pin
+//rpio.open(17, rpio.OUTPUT, rpio.LOW);
+
+
+//attempt at PWM
+
+rpio.open(12, rpio.PWM, rpio.LOW);
+rpio.pwmSetClockDivider(64);
+rpio.pwmSetRange(12, 1024);
+
+
+const pin = 12;
+const Gpio = require('pigpio').Gpio;
+const motor = new Gpio(pin, {mode: Gpio.OUTPUT});
+console.log(motor);
+
+
+
+// https://github.com/jperkin/node-rpio#pwm
+// 40-pin models: pins 12, 32, 33, 35 - gave me 1 PWM result (lol)
+
+
+
+// init base pin 25 as 1 to make pins 23 and 24 work
+// this was the main problem, pin needed to be set to high
+rpio.open(25, rpio.OUTPUT, rpio.HIGH);
+rpio.open(18, rpio.OUTPUT, rpio.HIGH);
+
+
+
+
+
+
+
+
+
+
+
+
+
+io.on('connection', (socket) => {
+
+    //turn on when connection
+    var status = connection();
+    socket.emit('connection', true);
+    //console.log(status);
+
+
+    /*
+     *      NEW STUFF!
+     *
+     */
+
+
+    let currentPower = 0;
+    let currentDirection = 0;
+    /*
+    const chNum = 14; // DMA channel 14
+    const ch = pwm.create_dma_channel(chNum);
+    const pin_forward = ch.create_pwm(24);
+    const pin_reverse = ch.create_pwm(23);
+    */
+
+
+    const pin_forward = new Gpio(24, {mode: Gpio.OUTPUT});
+
+    let dutyCycle = 0;
+
+    setInterval(() => {
+      pin_forward.pwmWrite(dutyCycle);
+
+      dutyCycle += 5;
+      if (dutyCycle > 255) {
+        dutyCycle = 0;
+      }
+    }, 20);
+
+    socket.on('drive', (input) => {
+        /**
+         *      FORWARD/REVERSE
+         */
+         /*
+        let power = input.p;
+        if (power != currentPower) {
+            currentPower = power;
+            let decimal = Math.abs(parseFloat(power / 100));
+            let modulation = parseFloat(decimal * 2000) > 2000 ? 2000 : parseFloat(decimal * 2000); // never go above 2000
+
+            // Forward
+            if (power >= 0) {
+                pin_reverse.set_width(0);
+                pin_forward.set_width(modulation);
+            }
+            // Reverse
+            else {
+                pin_forward.set_width(0);
+                pin_reverse.set_width(modulation);
+            }
+        }
+*/
+        /**
+         *      LEFT/RIGHT
+         */
+        let direction = input.d;
+        if (direction != currentDirection) {
+            currentDirection = direction;
+
+            let adjustedDir = (direction + 100) / 2;
+
+            let decimal = parseInt(Math.abs(adjustedDir)) / 100;
+            let min = 500;              // this needs to be calibrated to what complete left is
+            let max = 2000;             // this needs to be calibrated to what complete right is
+
+
+
+
+            let pulseWidth = min + (max * decimal);
+
+            pulseWidth = pulseWidth <= 1000 ? 1000 : pulseWidth;
+            pulseWidth = pulseWidth >= 2020 ? 2020 : pulseWidth;
+
+            //console.log('dir: ', pulseWidth);
+
+            //500 is left - 2500 is right
+            if (pulseWidth < 500) pulseWidth = 500;
+            if (pulseWidth > 2500) pulseWidth = 2500;
+
+            console.log(pulseWidth);
+
+            try {
+                motor.servoWrite(pulseWidth);
+            }
+            catch(e) {
+                console.log('no good')
+            }
+
+        }
+
+    });
+
+
+
+
+
+
+
+
+    /* Old stuff */
+
+    var toggle = {
+        forward: 0,
+        reverse: 0,
+        left: 0,
+        right: 0
+    };
+
+
+    socket.on('pigpio', (data) => {
+        //console.log(data); { action: 8, value: 50 }
+        let percent = parseInt(data.value) / 100;
+        let pulseWidth = 500 + 2000 * percent;
+
+        if (pulseWidth < 500) pulseWidth = 500;
+        if (pulseWidth > 2500) pulseWidth = 2500;
+
+        //console.log('set pin ' + pin + ':', pulseWidth); //lagging it possibly?
+
+        motor.servoWrite(pulseWidth);
+
+
+    });
+
+    /**
+     * CMD
+     */
+    socket.on('CMD', (data) => {
+
+        switch(data.action) {
+
+            case 'forward':
+                if (toggle.forward == 1) {
+
+                    // What I want to do most is this:
+                    // rpio.pwm(24, 0.5) - just a simple pin 24 at on/off. frequency variations added in as the third optional
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.LOW);
+                    toggle.forward = 0;
+                }
+                else {
+                    // forward
+                    console.log('go forward');
+                    rpio.write(24, rpio.HIGH);
+                    rpio.write(23, rpio.LOW);
+                    toggle.forward = 1;
+                }
+            break;
+
+            case 'reverse':
+                if (toggle.reverse == 1) {
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.LOW);
+                    toggle.reverse = 0;
+                }
+                else {
+                    // reverse
+                    console.log('go reverse');
+                    rpio.write(24, rpio.LOW);
+                    rpio.write(23, rpio.HIGH);
+                    toggle.reverse = 1;
+                }
+            break;
+
+            case 'left':
+                if (toggle.left == 1) {
+                    rpio.write(14, rpio.LOW);
+                    rpio.write(15, rpio.LOW);
+                    toggle.left = 0;
+                }
+                else {
+                    // left
+                    console.log('go left');
+                    rpio.write(14, rpio.LOW);
+                    rpio.write(15, rpio.HIGH);
+                    toggle.left = 1;
+                }
+            break;
+
+            case 'right':
+                if (toggle.right == 1) {
+                    rpio.write(14, rpio.LOW);
+                    rpio.write(15, rpio.LOW);
+                    toggle.right = 0;
+                }
+                else {
+                    // right
+                    console.log('go right');
+                    rpio.write(14, rpio.HIGH);
+                    rpio.write(15, rpio.LOW);
+                    toggle.right = 1;
+                }
+            break;
+
+
+            case 'test':
+                if (!isNaN(data.pin)) {
+
+                    // This is tighly coupled with rpio. The input value must be <= 26 or rpio lib will throw an error
+                    if (data.pin <= 26) {
+
+                        // Turn test pin #:ON
+                        if (data.state == 'mousedown') {
+                            // dunno what this is but keeping it here
+                            //rpio.open(data.pin, rpio.OUTPUT, rpio.LOW);
+                            rpio.write(data.pin, rpio.HIGH);
+                        }
+                        // Turn test pin #:OFF
+                        else {
+                            rpio.write(data.pin, rpio.LOW);
+                        }
+
+                        //console.log('pin:', data.pin, 'high');
+                        //socket.emit('response', 'wooop woop');
+                        //console.log(data);
+
+                    }
+
+                }
+
+            break;
+
+            default:
+                console.log('Shut all off');
+
+                rpio.write(24, rpio.LOW);
+                rpio.write(23, rpio.LOW);
+                rpio.write(14, rpio.LOW);
+                rpio.write(15, rpio.LOW);
+
+                toggle.forward = 0;
+                toggle.reverse = 0;
+                toggle.left = 0;
+                toggle.right = 0;
+
+        }
+
+    });
+
+
+    // this breaks pigpio
+    /**
+     * PWM
+     */
+
+     /*
+    var currentPercent2 = 0;
+    socket.on('pwm', (data) => {
+        if (data.pwm != currentPercent2) {
+            console.log('pin ' + data.pin, data.pwm + '%');
+            currentPercent2 = data.pwm;
+            var decimal = parseFloat(data.pwm / 100);
+            var modulation = parseFloat(decimal * 2000);
+
+            var chNum = 14; // DMA channel 14
+            var pinNum = data.pin; // GPIO pin #
+            var ch = pwm.create_dma_channel(chNum);
+            var pin = ch.create_pwm(pinNum);
+            pin.set_width(modulation);
+
+            if (data.pwm < 10) {
+                pin.release();
+                console.log('released');
+            }
+        }
+    });
+    */
+
+
+
+});
+
+
+//init server
+var port = 3030;
+http.listen(port, () => {
+    console.log('listening on *:' + port);
+});
+
+//Utility
+function connection() {
+    if (true) {
+
+    }
+    return false;
+    //return rpio.write(pin, rpio.HIGH);
+}

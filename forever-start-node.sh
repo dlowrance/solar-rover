@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo forever start "$(pwd)/server/server.js"
+sudo forever start "/home/pi/solar-rover/server/server.js"
