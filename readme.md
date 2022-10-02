@@ -6,7 +6,6 @@ A Wi-Fi based robot with an onboard camera for out of LoS control.
 
 * Nginx >= 1.14.2
 * Node >= 11.9.0
-* [rpio](https://www.npmjs.com/package/rpio)
 * [pigpio](https://www.npmjs.com/package/pigpio)
 * [socket.io](https://www.npmjs.com/package/socket.io)
 * [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer)
@@ -21,8 +20,6 @@ A Wi-Fi based robot with an onboard camera for out of LoS control.
 
 
 ### Wiring
-
-Pins used:
 
 ```
 const Gpio = require('pigpio').Gpio;

@@ -1,23 +1,16 @@
-const express = require('express');
-const app = express();
-const http = require('http').Server(app);
-const rpio = require('rpio');           // https://www.npmjs.com/package/rpio
+const http = require('http').createServer();
 const Gpio = require('pigpio').Gpio;    // https://npm.io/package/pigpio
 const io = require('socket.io')(http, {
     //origins:['solar.dlowrance.com'], //not needed? idk why :'(
     path:'/ws'
 });
 
-// Only need this because I don't know how to set 25 to high with pigpio
-rpio.init({
-    gpiomem: false,
-    mapping: 'gpio'
-});
-rpio.open(25, rpio.OUTPUT, rpio.HIGH);
-
-
 var status = connection();
 io.emit('connection', true);
+
+// Pin 25 needs to be set to 1 in order for the H-bridge to work
+const h_bridge_on = new Gpio(25, {mode: Gpio.OUTPUT});
+h_bridge_on.digitalWrite(1);
 
 const pin_forward = new Gpio(24, {mode: Gpio.OUTPUT});
 const pin_reverse = new Gpio(23, {mode: Gpio.OUTPUT});
