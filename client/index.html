@@ -213,6 +213,9 @@
             border-top: 1px #555 solid;
             padding: 20px;
         }
+        #settings #uptime span {
+            transition: opacity 0.1s ease-in-out;
+        }
         #settings .restart {
             opacity: 0.5;
         }
@@ -399,9 +402,37 @@
         </div>
 
         <div id="canvas-container">
-            <div id="canvas">
+            <div id="canvas" style="position: relative;">
                 <div id="cursor" data-coords="{x:0, y:0}"></div>
             	<div id="origin" class="inactive"></div>
+
+                <div id="vertical" class="lines"></div>
+                <div id="horizontal" class="lines"></div>
+                <style>
+                    .lines {
+                        display: none;
+                    }
+                    .lines.active {
+                        display: block;
+                    }
+                    #vertical {
+                        position: absolute;
+                        top: 0;
+                        height: 100%;
+                        width: 1px;
+                        right: 50%;
+                        background: #444;
+                    }
+                    #horizontal {
+                        position: absolute;
+                        top: 50%;
+                        height: 1px;
+                        width: 100%;
+                        right: 1px;
+                        background: #444;
+                    }
+                </style>
+
             </div>
         </div>
         <div class="dial-container" style="display: none;">
@@ -422,13 +453,21 @@
                     <input class="option-camera form-check-input appearance-none w-20 -ml-10 rounded-full float-left align-top bg-white bg-no-repeat bg-contain bg-gray-300 focus:outline-none cursor-pointer shadow-sm" style="height: 38px;" type="checkbox" role="switch" id="camera">
                 </div>
             </div>
+            <!-- lines -->
+            <div class="flex option selection">
+                <div class="form-check form-switch">
+                    <label class="form-check-label inline-block text-gray-800" for="lines">Lines</label>
+                    <input class="option-lines form-check-input appearance-none w-20 -ml-10 rounded-full float-left align-top bg-white bg-no-repeat bg-contain bg-gray-300 focus:outline-none cursor-pointer shadow-sm" style="height: 38px;" type="checkbox" role="switch" id="lines">
+                </div>
+            </div>
+            <!-- lines end -->
 
             <div class="flex option option-status selection">
                 <div class="form-check form-switch">
-                    <label class="form-check-label inline-block text-gray-800">Status</label>
-                    <i class="ti ti-activity"></i>
+                    <label class="form-check-label inline-block text-gray-800">Performance</label>
+                    <i class="ti ti-device-desktop-analytics"></i>
                 </div>
-                <div id="uptime">Tap Status to update</div>
+                <div id="uptime"><span>Tap Performance to update</span></div>
             </div>
 
             <div class="flex option option-restart selection noselect">
@@ -451,6 +490,18 @@
     <script src="/js/jquery-ui.js"></script>
     <script src="/js/jquery-ui.punch.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v=1.7"></script>
 </body>
 </html>
+
+<script>
+
+$('.option-lines').on('click', function() {
+    if ($('.option-lines').is(':checked')) {
+        setState({lines: true});
+    }
+    else {
+        setState({lines: false});
+    }
+});
+</script>

@@ -19,10 +19,7 @@ const servo_motor = new Gpio(12, {mode: Gpio.OUTPUT});
 
 
 // Init
-var _settings = {
-    camera: {
-    },
-};
+var _settings = {};
 
 io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
@@ -102,18 +99,18 @@ io.on('connection', (socket) => {
     /**
      *      SETTINGS
      */
-
-    socket.emit('settings', _settings);
+    console.log(_settings);
+    socket.emit('setSettings-server', _settings);
 
     isRunning('mjpg_streamer', (status) => {
-        console.log(status); // true|false
+        //console.log(status); // true|false
         _settings.camera = status ? 'on' : 'off';
         socket.emit('settings', _settings);
     })
 
 
     // Adjustments
-    socket.on('settings', (setting) => {
+    socket.on('setSettings-client', (setting) => {
 
         // CAMERA
         if ('camera' in setting) {
@@ -128,7 +125,7 @@ io.on('connection', (socket) => {
                 cmd = 'sh ' + __dirname + '/../stop-cam.sh';
                 status = 'off';
             }
-            console.log('CAMERA: ' + cmd);
+            //console.log('CAMERA: ' + cmd);
             exec(cmd, (err, stdout, stderr) => {
                 if (err) {
                     // node couldn't execute the command
@@ -140,8 +137,7 @@ io.on('connection', (socket) => {
                 //console.log(`stdout: ${stdout}`);
                 //console.log(`stderr: ${stderr}`);
 
-                _settings.camera = status
-                socket.emit('settings', _settings);
+                setSettings({camera: status}, socket);
             });
         }
         // CAMERA - END
@@ -159,12 +155,7 @@ io.on('connection', (socket) => {
                     return;
                 }
 
-                //put this in a generic "update settings" function
-                var newSettings = Object.assign({}, _settings);
-                newSettings.uptime = stdout;
-                _settings = newSettings;
-                socket.emit('settings', newSettings);
-                console.log(_settings);
+                setSettings({uptime: stdout}, socket);
             });
 
         }
@@ -181,6 +172,14 @@ io.on('connection', (socket) => {
             //console.log('Restarting...'); // Doesn't get here.. as expected
         });
     });
+
+
+
+    //temporary - just to test
+    socket.on('setSettings-client', function(data) {
+        setSettings(data, socket);
+    });
+
 
 });
 
@@ -199,7 +198,6 @@ function connection() {
     //return rpio.write(pin, rpio.HIGH);
 }
 
-
 const isRunning = (query, cb) => {
     let platform = process.platform;
     let cmd = '';
@@ -212,4 +210,27 @@ const isRunning = (query, cb) => {
     exec(cmd, (err, stdout, stderr) => {
         cb(stdout.toLowerCase().indexOf(query.toLowerCase()) > -1);
     });
+}
+
+const setSettings = (setting_object, socket) => {
+    var change = 0;
+    for (const [key, value] of Object.entries(setting_object)) {
+        if (key in _settings == false) {
+            _settings[key] = value;
+            console.log(`ADDED: { ${key}: ${value} }`);
+            change++;
+        }
+        else {
+            if (_settings[key] != setting_object[key]) {
+                _settings[key] = setting_object[key];
+                console.log(`UPDATED: { ${key}: ${value} }`);
+                change++;
+            }
+        }
+    }
+    if (change > 0) {
+        //update all instances - its the same rover afterall
+        io.emit('setSettings-server', _settings);
+        //console.log(_settings);
+    }
 }

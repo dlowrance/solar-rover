@@ -98,21 +98,21 @@ $(document).ready(function() {
     });
 
     $('.option-camera').on('click', function(e) {
-        var is_checked = $('.option-camera').is(':checked');
-        if (is_checked) {
-            socket.emit('settings', {
-                camera: 'on'
-            });
+        if ($('.option-camera').is(':checked') == true) {
+			setState({camera: 'on'});
         }
         else {
-            socket.emit('settings', {
-                camera: 'off'
-            });
+            setState({camera: 'off'});
         }
     });
 
     $('.option-status .form-check').on('click', function() {
         socket.emit('get', 'uptime');
+		
+		$('#uptime span').css({opacity: 0});
+		setTimeout(function() {
+			$('#uptime span').removeAttr('style');
+		}, 100);
     });
 
     $('.restart').on('click', function() {
@@ -168,18 +168,35 @@ $(document).ready(function() {
 
 });
 
-// set settings
-socket.on('settings', function(settings) {
-    _settings = settings;
-    setSettings(_settings);
-});
 
-function setSettings(settings) {
+// set settings - from server
+socket.on('setSettings-server', function(settings) {
+    _settings = settings;
+    setState(_settings);
+});
+function setState(newSetting) {
     setSettingsTime();
 
-    if (settings === 0) return;
+	// update global state object (_settings);
+	var change = 0;
+    for (const [key, value] of Object.entries(newSetting)) {
+        if (key in _settings == false) {
+            _settings[key] = value;
+            console.log(`{ ${key}: ${value} } - added`);
+            change++;
+        }
+        else {
+            if (_settings[key] != newSetting[key]) {
+                _settings[key] = newSetting[key];
+                console.log(`{ ${key}: ${value} } - updated`);
+                change++;
+            }
+        }
+    }
 
-    if (settings.camera == 'on') {
+    if (_settings === 0 || _settings === undefined) return {};
+
+    if (_settings.camera == 'on') {
         $('.option-camera').attr('checked', true);
         $('#front-camera').removeClass('offline');
     }
@@ -188,11 +205,31 @@ function setSettings(settings) {
         $('#front-camera').addClass('offline').attr('src', 'img/onerr.png?' + Date.now());
     }
 
-    if ('uptime' in settings) {
-        $('#uptime').html(settings.uptime);
+    if ('uptime' in _settings) {
+        $('#uptime span').html(_settings.uptime);
     }
 
+	//if ('lines' in settings && settings.lines !== true) { // this also works as expected - wtf?
+	if ('lines' in _settings && _settings.lines === true) { // this one makes sense to me - but above works too?
+		$('.lines').addClass('active');
+		$('.option-lines').attr('checked', true);
+	}
+	else {
+		$('.lines').removeClass('active');
+		$('.option-lines').attr('checked', false);
+	}
+
+	if (change > 0) {
+		//console.log('Changes! emit and update');
+		socket.emit('setSettings-client', newSetting);
+	}
+	else {
+		//console.log('avoided traffic - hooray');
+	}
+
+	return _settings;
 }
+
 
 $(function() {
     var x_coord = 0;
