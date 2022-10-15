@@ -1,4 +1,5 @@
 const http = require('http').createServer();
+const { exec } = require('child_process');
 const Gpio = require('pigpio').Gpio;    // https://npm.io/package/pigpio
 const io = require('socket.io')(http, {
     //origins:['solar.dlowrance.com'], //not needed? idk why :'(
@@ -15,6 +16,13 @@ h_bridge_on.digitalWrite(1);
 const pin_forward = new Gpio(24, {mode: Gpio.OUTPUT});
 const pin_reverse = new Gpio(23, {mode: Gpio.OUTPUT});
 const servo_motor = new Gpio(12, {mode: Gpio.OUTPUT});
+
+
+// Init
+var _settings = {
+    camera: {
+    },
+};
 
 io.on('connection', (socket) => {
     console.log(socket.id + ' connected.');
@@ -90,6 +98,90 @@ io.on('connection', (socket) => {
 
     });
 
+
+    /**
+     *      SETTINGS
+     */
+
+    socket.emit('settings', _settings);
+
+    isRunning('mjpg_streamer', (status) => {
+        console.log(status); // true|false
+        _settings.camera = status ? 'on' : 'off';
+        socket.emit('settings', _settings);
+    })
+
+
+    // Adjustments
+    socket.on('settings', (setting) => {
+
+        // CAMERA
+        if ('camera' in setting) {
+
+            var cmd = '';
+            var status = '';
+            if (setting.camera == 'on') {
+                cmd = 'sh ' + __dirname + '/../start-cam.sh';
+                status = 'on';
+            }
+            else {
+                cmd = 'sh ' + __dirname + '/../stop-cam.sh';
+                status = 'off';
+            }
+            console.log(cmd);
+            exec(cmd, (err, stdout, stderr) => {
+                if (err) {
+                    // node couldn't execute the command
+                    console.log('error: ' + stderr);
+                    return;
+                }
+
+                // the *entire* stdout and stderr (buffered)
+                console.log(`stdout: ${stdout}`);
+                console.log(`stderr: ${stderr}`);
+
+                _settings.camera = status
+                socket.emit('settings', _settings);
+            });
+        }
+        // CAMERA - END
+
+    });
+
+    socket.on('get', function(data) {
+        // UPTIME
+        if (data == 'uptime') {
+
+            exec('uptime', (err, stdout, stderr) => {
+                if (err) {
+                    // node couldn't execute the command
+                    console.log('error: ' + stderr);
+                    return;
+                }
+
+                //put this in a generic "update settings" function
+                var newSettings = Object.assign({}, _settings);
+                newSettings.uptime = stdout;
+                _settings = newSettings;
+                socket.emit('settings', newSettings);
+                console.log(_settings);
+            });
+
+        }
+    });
+
+    socket.on('RESTART', function() {
+        console.log('Restart Now!');
+        exec('sudo reboot', (err, stdout, stderr) => {
+            if (err) {
+                // node couldn't execute the command
+                console.log('error: ' + stderr);
+                return;
+            }
+            //console.log('Restarting...'); // Doesn't get here.. as expected
+        });
+    });
+
 });
 
 //init server
@@ -105,4 +197,19 @@ function connection() {
     }
     return false;
     //return rpio.write(pin, rpio.HIGH);
+}
+
+
+const isRunning = (query, cb) => {
+    let platform = process.platform;
+    let cmd = '';
+    switch (platform) {
+        case 'win32' : cmd = `tasklist`; break;
+        case 'darwin' : cmd = `ps -ax | grep ${query}`; break;
+        case 'linux' : cmd = `ps -A`; break;
+        default: break;
+    }
+    exec(cmd, (err, stdout, stderr) => {
+        cb(stdout.toLowerCase().indexOf(query.toLowerCase()) > -1);
+    });
 }
