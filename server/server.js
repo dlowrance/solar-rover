@@ -128,7 +128,7 @@ io.on('connection', (socket) => {
                 cmd = 'sh ' + __dirname + '/../stop-cam.sh';
                 status = 'off';
             }
-            console.log(cmd);
+            console.log('CAMERA: ' + cmd);
             exec(cmd, (err, stdout, stderr) => {
                 if (err) {
                     // node couldn't execute the command
@@ -137,8 +137,8 @@ io.on('connection', (socket) => {
                 }
 
                 // the *entire* stdout and stderr (buffered)
-                console.log(`stdout: ${stdout}`);
-                console.log(`stderr: ${stderr}`);
+                //console.log(`stdout: ${stdout}`);
+                //console.log(`stderr: ${stderr}`);
 
                 _settings.camera = status
                 socket.emit('settings', _settings);
